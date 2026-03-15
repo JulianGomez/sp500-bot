@@ -1,0 +1,10 @@
+yfinance==0.2.42
+ccxt==4.3.95
+pandas==2.2.2
+pandas-ta==0.3.14b0
+numpy==1.26.4
+requests==2.32.3
+ta==0.11.0
+scikit-learn==1.4.2
+python-telegram-bot==20.7
+python-dotenv==1.0.0

@@ -1,0 +1,278 @@
+"""
+🚀 PASO A PASO EXACTO - HACER GIT PUSH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SONNET 4.6 - Usando los comandos exactos que GitHub te dio
+
+URL repo: https://github.com/JulianGomez/sp500-bot.git
+
+Tienes 2 opciones según tu situación.
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# ¿CUÁL ES TU SITUACIÓN?
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+OPCIÓN A: Repo VACÍO en GitHub (recién creado)
+└─ Tienes archivos en tu PC pero GitHub está vacío
+└─ Usa los comandos de: "…or create a new repository on the command line"
+
+OPCIÓN B: Repo VACÍO en GitHub y quieres usar tu carpeta actual
+└─ Ya tienes sp500-bot/ en tu PC
+└─ Quieres convertirla en un repo Git y subirla
+└─ Usa también: "…or create a new repository on the command line"
+
+OPCIÓN C: Repo CLONADO en tu PC
+└─ Hiciste git clone
+└─ Ya tienes .git
+└─ Usa: "…or push an existing repository from the command line"
+
+TÚ TIENES: OPCIÓN A (repo recién creado, archivos en tu PC)
+
+VAMOS CON ESA.
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO A PASO - TU SITUACIÓN (OPCIÓN A)
+# ════════════════════════════════════════════════════════════════════════════
+
+print("""
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    GIT PUSH PASO A PASO EXACTO                             ║
+║                                                                            ║
+║  Tu situación:                                                             ║
+║  - Repo sp500-bot creado en GitHub ✅                                      ║
+║  - Carpeta sp500-bot en tu PC con archivos ✅                             ║
+║  - GitHub vacío (aún sin archivos subidos) ✅                             ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+PASO 1: VERIFICAR QUE TIENES TODOS LOS ARCHIVOS
+════════════════════════════════════════════════════════════════════════════
+
+En tu carpeta sp500-bot deberías tener:
+
+✅ sp500_bot_v3.0_FINAL.py      (el bot)
+✅ requirements_updated.txt      (dependencias)
+✅ .env                          (con tus valores, local solamente)
+✅ .env.example                  (template, se sube)
+✅ .gitignore                    (protege .env)
+✅ README.md                     (nueva)
+✅ Procfile                      (nueva)
+✅ Railway.toml                  (nueva)
+
+Si te faltan archivos, descárgalos de outputs/ arriba.
+
+PASO 2: ABRIR TERMINAL EN TU CARPETA sp500-bot
+════════════════════════════════════════════════════════════════════════════
+
+Windows:
+  1. Abrí File Explorer
+  2. Navega a: C:\\Users\\TU_USUARIO\\Desktop\\sp500-bot
+  3. Click derecho → "Abrir PowerShell aquí" o "Abrir terminal"
+
+Mac/Linux:
+  1. Abrí Terminal
+  2. Escribe: cd ~/Desktop/sp500-bot
+  3. Enter
+
+Deberías estar en la carpeta sp500-bot.
+
+PASO 3: EJECUTAR LOS COMANDOS DE GITHUB (EN ORDEN)
+════════════════════════════════════════════════════════════════════════════
+
+IMPORTANTE: Copia cada línea EXACTAMENTE como está.
+
+Comando 1 - Inicializar git:
+────────────────────────────────────────────────────────────────────────────
+$ git init
+
+Output esperado:
+  Initialized empty Git repository in /Users/.../sp500-bot/.git
+
+Comando 2 - Agregar todos los archivos:
+────────────────────────────────────────────────────────────────────────────
+$ git add .
+
+(No muestra output, es normal)
+
+⚠️  ANTES DE CONTINUAR - VERIFICAR QUE .env NO SE SUBE:
+
+$ git status
+
+Output debe mostrar:
+
+  On branch master (o main)
+  
+  Changes to be committed:
+    new file:   .env.example        ✅ Se sube
+    new file:   .gitignore          ✅ Se sube
+    new file:   Procfile            ✅ Se sube
+    new file:   README.md           ✅ Se sube
+    new file:   Railway.toml        ✅ Se sube
+    new file:   requirements_updated.txt ✅ Se sube
+    new file:   sp500_bot_v3.0_FINAL.py ✅ Se sube
+  
+  ❌ .env NO debe aparecer aquí
+  ❌ venv/ NO debe aparecer aquí
+
+Si .env APARECE en la lista:
+  $ git rm --cached .env
+
+Luego:
+  $ git status
+  (Verificar que .env desapareció)
+
+Comando 3 - Primer commit:
+────────────────────────────────────────────────────────────────────────────
+$ git commit -m "feat: S&P 500 trading bot with telegram and backtest"
+
+Output esperado:
+  [master (root-commit) abc1234] feat: S&P 500 trading bot...
+   7 files changed, 400 insertions(+)
+   create mode 100644 .env.example
+   create mode 100644 .gitignore
+   create mode 100644 Procfile
+   ...
+
+Comando 4 - Renombrar rama a main:
+────────────────────────────────────────────────────────────────────────────
+$ git branch -M main
+
+(No muestra output, es normal)
+
+Comando 5 - Agregar el remote (tu repo en GitHub):
+────────────────────────────────────────────────────────────────────────────
+$ git remote add origin https://github.com/JulianGomez/sp500-bot.git
+
+(No muestra output, es normal)
+
+⚠️  IMPORTANTE: Reemplaza "JulianGomez" con tu USERNAME DE GITHUB
+
+Comando 6 - HACER PUSH (subir a GitHub):
+────────────────────────────────────────────────────────────────────────────
+$ git push -u origin main
+
+Output esperado (primera vez):
+  Enumerating objects: 7, done.
+  Counting objects: 100% (7/7), done.
+  Delta compression using up to 8 threads
+  Compressing objects: 100% (6/6), done.
+  Writing objects: 100% (7/7), 1.23 KiB | 1.23 MiB/s, done.
+  Total 7 (delta 0), reused 0 (delta 0), pack-reused 0
+  remote: 
+  remote: Create a pull request for 'main' on GitHub by visiting:
+  remote:      https://github.com/JulianGomez/sp500-bot/pull/new/main
+  remote:
+  To https://github.com/JulianGomez/sp500-bot.git
+   * [new branch]      main -> main
+  Branch 'main' set up to track remote branch 'main' from 'origin'.
+
+✅ LISTO! Los archivos están en GitHub
+
+PASO 4: VERIFICAR EN GITHUB
+════════════════════════════════════════════════════════════════════════════
+
+1. Abrí navegador
+2. Ir a: https://github.com/JulianGomez/sp500-bot
+3. Deberías ver todos tus archivos listados:
+   - sp500_bot_v3.0_FINAL.py ✅
+   - requirements_updated.txt ✅
+   - .env.example ✅
+   - .gitignore ✅
+   - README.md ✅
+   - Procfile ✅
+   - Railway.toml ✅
+
+4. Verificar que .env NO está (es lo más importante)
+   └─ No debe aparecer en la lista ✅
+
+✅ SI VES TODO ESTO: PERFECTO!
+
+PASO 5: PRÓXIMO PASO - DEPLOY EN RAILWAY
+════════════════════════════════════════════════════════════════════════════
+
+Ahora que está en GitHub:
+
+1. Ir a: https://railway.app
+2. Dashboard → "+ New Project"
+3. "Deploy from GitHub repo"
+4. Seleccionar: sp500-bot
+5. Deploy
+
+Railway:
+  - Clona tu repo desde GitHub
+  - Instala requirements_updated.txt
+  - Ejecuta: python sp500_bot_v3.0_FINAL.py live
+  - Tu bot corre 24/7
+
+6. En Railway → Variables:
+   - TELEGRAM_TOKEN = tu_token
+   - TELEGRAM_CHAT_ID = tu_id
+
+¡LISTO!
+
+════════════════════════════════════════════════════════════════════════════
+
+RESUMEN DE COMANDOS (para copiar-pegar):
+
+git init
+git add .
+git status              ← VERIFICA QUE .env NO APARECE
+git commit -m "feat: S&P 500 trading bot with telegram and backtest"
+git branch -M main
+git remote add origin https://github.com/JulianGomez/sp500-bot.git
+git push -u origin main
+
+(Reemplaza JulianGomez con tu usuario de GitHub)
+
+════════════════════════════════════════════════════════════════════════════
+
+¿ERRORES COMUNES?
+
+ERROR 1: "fatal: not a git repository"
+─────────────────────────────────────────
+Causa: No estás en la carpeta sp500-bot
+
+Solución:
+$ cd ~/Desktop/sp500-bot
+$ git init
+
+ERROR 2: "Please tell me who you are" en git commit
+─────────────────────────────────────────────────────
+Causa: Git no sabe tu nombre/email
+
+Solución:
+$ git config --global user.name "Tu Nombre"
+$ git config --global user.email "tu_email@gmail.com"
+
+Luego vuelve a hacer git commit.
+
+ERROR 3: "fatal: 'origin' does not appear to be a 'git' repository"
+──────────────────────────────────────────────────────────────────────
+Causa: No agregaste el remote correctamente
+
+Solución:
+$ git remote remove origin     (borra el anterior)
+$ git remote add origin https://github.com/TU_USUARIO/sp500-bot.git
+$ git push -u origin main
+
+ERROR 4: "Permission denied (publickey)"
+──────────────────────────────────────────
+Causa: GitHub no reconoce tu identidad
+
+Solución:
+https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+
+O usa HTTPS en lugar de SSH (más fácil):
+$ git remote set-url origin https://github.com/TU_USUARIO/sp500-bot.git
+
+════════════════════════════════════════════════════════════════════════════
+
+EJECUTA AHORA Y AVÍSAME CUANDO TERMINES
+
+Copia todos los comandos de arriba en orden.
+Espera a que cada uno termine.
+Si ves "✅ LISTO!" significa que funcionó.
+
+""")

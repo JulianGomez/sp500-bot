@@ -1,0 +1,9 @@
+[build]
+builder = "python"
+
+[deploy]
+startCommand = "python sp500_bot_v3.0_FINAL.py live"
+
+[env]
+TELEGRAM_TOKEN = ""
+TELEGRAM_CHAT_ID = ""

