@@ -1,19 +1,19 @@
 """
-🤖 S&P 500 Bot v3.0 FINAL - CON TODO INTEGRADO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 S&P 500 Bot v3.0 FINAL - CON LOOP CONTINUO PARA RAILWAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Bot S&P 500 RSI10 Mean Reversion
 ✅ Telegram integrado (alertas en teléfono)
 ✅ Backtest histórico gratis
-✅ Binance Testnet gratis (dinero ficticio)
+✅ Corre continuamente en Railway (loop diario)
 ✅ .env para credenciales (seguro)
 ✅ Logging detallado
 ✅ Validaciones robustas
 
 Uso:
-  python sp500_bot.py backtest          # Prueba gratis
-  python sp500_bot.py live              # Live mode
-  python sp500_bot.py --help            # Ayuda
+  python sp500_bot_v3.0_FINAL.py backtest          # Prueba gratis
+  python sp500_bot_v3.0_FINAL.py live              # Live mode (continuo)
+  python sp500_bot_v3.0_FINAL.py --help            # Ayuda
 """
 
 import os
@@ -410,20 +410,6 @@ class S500Bot:
         
         return results
 
-    def run_live(self):
-        """Modo live (con backtest de datos recientes)"""
-        log.info("🚀 MODO LIVE: Backtesting con datos recientes")
-        self.telegram.send("🚀 *Bot S&P 500 iniciado en LIVE MODE*")
-        
-        # Hacer backtest de últimos 60 días
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=60)
-        
-        self.run_backtest(
-            start_date.strftime("%Y-%m-%d"),
-            end_date.strftime("%Y-%m-%d")
-        )
-
 
 # ════════════════════════════════════════════════════════════════════════════
 # MAIN
@@ -435,14 +421,14 @@ def main():
 🤖 Bot S&P 500 v3.0
 
 USO:
-  python sp500_bot.py backtest    # Backtest histórico (2024-2025)
-  python sp500_bot.py live        # Backtest reciente (últimos 60 días)
-  python sp500_bot.py --help      # Esta ayuda
+  python sp500_bot_v3.0_FINAL.py backtest    # Backtest histórico (2024-2025)
+  python sp500_bot_v3.0_FINAL.py live        # Modo live (corre continuamente)
+  python sp500_bot_v3.0_FINAL.py --help      # Esta ayuda
 
 ANTES DE EJECUTAR:
   1. cp .env.example .env
   2. Edita .env con tus credenciales Telegram (OPCIONAL)
-  3. pip install -r requirements_updated.txt
+  3. pip install -r requirements.txt
 
 TELEGRAM (OPCIONAL):
   - @BotFather → /newbot → TOKEN
@@ -461,7 +447,57 @@ OUTPUT:
         if len(sys.argv) > 1 and sys.argv[1] == "backtest":
             results = bot.run_backtest(CONFIG["backtest_start"], CONFIG["backtest_end"])
         else:
-            bot.run_live()
+            # MODO LIVE: Corre continuamente
+            log.info("🚀 MODO LIVE: Bot corriendo continuamente...")
+            bot.telegram.send("🚀 *Bot S&P 500 iniciado en LIVE MODE*\nCorriendo continuamente...")
+            
+            last_run_date = None
+            while True:
+                try:
+                    current_date = datetime.now().date()
+                    
+                    # Ejecutar una vez al día
+                    if last_run_date != current_date:
+                        log.info(f"\n{'='*60}")
+                        log.info(f"📅 Ejecución diaria: {current_date}")
+                        log.info(f"{'='*60}\n")
+                        
+                        # Backtest de últimos 60 días
+                        end_date = datetime.now()
+                        start_date = end_date - timedelta(days=60)
+                        
+                        bot.run_backtest(
+                            start_date.strftime("%Y-%m-%d"),
+                            end_date.strftime("%Y-%m-%d")
+                        )
+                        
+                        last_run_date = current_date
+                        
+                        # Resumen diario
+                        if bot.daily_trades:
+                            daily_pnl = sum(t.pnl_pct for t in bot.daily_trades if t.pnl_pct)
+                            cumulative_pnl = (bot.capital - CONFIG["initial_capital"]) / CONFIG["initial_capital"] * 100
+                            wins = sum(1 for t in bot.daily_trades if t.pnl_pct > 0)
+                            losses = len(bot.daily_trades) - wins
+                            
+                            bot.telegram.report_daily_summary(
+                                current_date.strftime("%Y-%m-%d"),
+                                len(bot.daily_trades),
+                                wins,
+                                losses,
+                                daily_pnl,
+                                cumulative_pnl
+                            )
+                            bot.daily_trades = []
+                    
+                    # Esperar 1 hora antes de siguiente check
+                    log.info(f"⏰ Próxima ejecución en 1 hora... ({datetime.now().strftime('%H:%M:%S')})")
+                    time.sleep(3600)
+                    
+                except Exception as e:
+                    log.error(f"❌ Error en loop: {e}", exc_info=True)
+                    bot.telegram.report_error(f"Error en ejecución: {str(e)}")
+                    time.sleep(60)
             
     except KeyboardInterrupt:
         log.info("⏸️  Bot detenido por usuario")
