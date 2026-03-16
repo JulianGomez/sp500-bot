@@ -1,6 +1,6 @@
 # 🤖 S&P 500 Trading Bot
 
-Bot de trading automático que compra y vende acciones del S&P 500 basado en RSI(10) Mean Reversion strategy.
+Bot de trading automático que compra y vende acciones del S&P 500 basado en RSI(10) Mean Reversion strategy
 
 ## 📊 Características
 
