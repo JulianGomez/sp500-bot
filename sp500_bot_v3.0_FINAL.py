@@ -1,24 +1,21 @@
 """
-🤖 S&P 500 Bot v3.0 FINAL - CON LOOP CONTINUO PARA RAILWAY
+🤖 S&P 500 Bot v3.1 - OPERANDO EN VIVO CON DATOS REALES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Bot S&P 500 RSI10 Mean Reversion
-✅ Telegram integrado (alertas en teléfono)
-✅ Backtest histórico gratis
-✅ Corre continuamente en Railway (loop diario)
-✅ .env para credenciales (seguro)
-✅ Logging detallado
-✅ Validaciones robustas
+✅ Analiza precios REALES ahora
+✅ Abre/cierra trades EN VIVO (sin dinero real, pero con lógica real)
+✅ Telegram integrado (alertas instantáneas)
+✅ Corre continuamente en Railway
+✅ Aprendizaje día a día
 
 Uso:
-  python sp500_bot_v3.0_FINAL.py backtest          # Prueba gratis
-  python sp500_bot_v3.0_FINAL.py live              # Live mode (continuo)
-  python sp500_bot_v3.0_FINAL.py --help            # Ayuda
+  python sp500_bot_v3.1_LIVE_REAL.py live    # Modo LIVE real (recomendado)
+  python sp500_bot_v3.1_LIVE_REAL.py --help  # Ayuda
 """
 
 import os
 import sys
-import json
 import time
 import logging
 import pandas as pd
@@ -42,13 +39,12 @@ CONFIG = {
     "oversold_threshold": 35,
     "target_profit_pct": 0.03,
     "stop_loss_pct": 0.03,
-    "time_based_exit_hour": 16,
+    "time_based_exit_hour": 16,  # 4 PM EST (cierre NYSE)
     "initial_capital": 10000,
     "risk_per_trade_pct": 0.10,
     "telegram_token": os.getenv("TELEGRAM_TOKEN", "").strip(),
     "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", "").strip(),
-    "backtest_start": "2024-01-01",
-    "backtest_end": "2025-12-31",
+    "check_interval_minutes": 30,  # Revisar cada 30 minutos durante horario de mercado
 }
 
 # Logging setup
@@ -64,7 +60,7 @@ log = logging.getLogger(__name__)
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# TELEGRAM REPORTER (CON VALIDACIONES)
+# TELEGRAM REPORTER
 # ════════════════════════════════════════════════════════════════════════════
 
 class TelegramReporter:
@@ -76,9 +72,9 @@ class TelegramReporter:
         self.enabled = bool(self.token and self.chat_id)
         
         if self.enabled:
-            log.info("✅ Telegram HABILITADO - Recibirás alertas en tu teléfono")
+            log.info("✅ Telegram HABILITADO")
         else:
-            log.warning("⏭️  Telegram DESHABILITADO - Completa .env con TOKEN y CHAT_ID para alertas")
+            log.warning("⏭️  Telegram DESHABILITADO")
 
     def send(self, msg: str) -> bool:
         """Envía mensaje a Telegram"""
@@ -97,14 +93,14 @@ class TelegramReporter:
             )
             
             if response.status_code == 200:
-                log.debug("[TG] ✅ Mensaje enviado")
+                log.debug("[TG] ✅ Enviado")
                 return True
             else:
-                log.warning(f"[TG] Error {response.status_code}: {response.text}")
+                log.warning(f"[TG] Error {response.status_code}")
                 return False
                 
         except Exception as e:
-            log.warning(f"[TG] Error enviando: {e}")
+            log.warning(f"[TG] Error: {e}")
             return False
 
     def report_trade_open(self, symbol: str, entry_price: float, rsi10: float, capital: float):
@@ -112,10 +108,9 @@ class TelegramReporter:
         msg = (
             f"🚀 *COMPRA EJECUTADA*\n"
             f"Par: {symbol}\n"
-            f"Precio entrada: ${entry_price:.2f}\n"
-            f"RSI(10): {rsi10:.1f} (oversold)\n"
-            f"Capital en riesgo: ${capital:.2f}\n"
-            f"Target: +3% | Stop: -3%\n"
+            f"Precio: ${entry_price:.2f}\n"
+            f"RSI(10): {rsi10:.1f}\n"
+            f"Capital: ${capital:.2f}\n"
             f"⏰ {datetime.now().strftime('%H:%M:%S')}"
         )
         self.send(msg)
@@ -129,43 +124,29 @@ class TelegramReporter:
             f"Par: {symbol}\n"
             f"${entry:.2f} → ${exit_price:.2f}\n"
             f"PnL: {pnl_pct:+.2f}%\n"
-            f"Razón: {reason}\n"
-            f"⏰ {datetime.now().strftime('%H:%M:%S')}"
+            f"Razón: {reason}"
         )
         self.send(msg)
 
-    def report_daily_summary(self, date_str: str, total: int, wins: int, 
-                            losses: int, daily_pnl: float, cumulative: float):
-        """Resumen diario"""
-        msg = (
-            f"📊 *RESUMEN DIARIO - {date_str}*\n"
-            f"Operaciones: {total}\n"
-            f"✅ Ganadoras: {wins} | ❌ Perdedoras: {losses}\n"
-            f"PnL hoy: {daily_pnl:+.2f}%\n"
-            f"PnL acumulado: {cumulative:+.2f}%"
-        )
-        self.send(msg)
-
-    def report_error(self, error_msg: str):
-        """Alerta: Error"""
-        msg = f"⚠️ *ERROR EN BOT*\n{error_msg}"
+    def report_status(self, msg: str):
+        """Estado general"""
         self.send(msg)
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# DATA MANAGER (YAHOO FINANCE)
+# DATA MANAGER - DATOS EN VIVO
 # ════════════════════════════════════════════════════════════════════════════
 
 class DataManager:
-    """Obtiene datos históricos y calcula RSI"""
+    """Obtiene datos EN VIVO y calcula RSI"""
     
     def __init__(self, symbols: List[str], period: int = 10):
         self.symbols = symbols
         self.period = period
         self.cache = {}
 
-    def get_data(self, symbol: str, days_back: int = 30) -> Optional[pd.DataFrame]:
-        """Descarga OHLCV + RSI10"""
+    def get_live_data(self, symbol: str, days_back: int = 30) -> Optional[pd.DataFrame]:
+        """Descarga datos ACTUALES de Yahoo Finance"""
         try:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days_back)
@@ -175,11 +156,12 @@ class DataManager:
                 start=start_date,
                 end=end_date,
                 progress=False,
-                interval="1d"
+                interval="1d",
+                auto_adjust=True
             )
             
             if df.empty:
-                log.warning(f"⚠️  {symbol}: Sin datos disponibles")
+                log.warning(f"⚠️  {symbol}: Sin datos")
                 return None
             
             # Calcular RSI(10)
@@ -196,43 +178,50 @@ class DataManager:
             log.error(f"Error descargando {symbol}: {e}")
             return None
 
-    def find_most_oversold(self, threshold: int = 35) -> Tuple[Optional[str], float]:
-        """Encuentra símbolo más oversold"""
+    def find_most_oversold_now(self, threshold: int = 35) -> Tuple[Optional[str], float, float]:
+        """Encuentra símbolo más oversold AHORA"""
         most_oversold = None
         min_rsi = 100
+        price = 0
         
         for symbol in self.symbols:
-            df = self.get_data(symbol, days_back=30)
+            df = self.get_live_data(symbol, days_back=30)
             if df is None or len(df) < self.period:
                 continue
             
             rsi = df['RSI'].iloc[-1]
+            current_price = df['Close'].iloc[-1]
+            
             if not np.isnan(rsi) and rsi < threshold and rsi < min_rsi:
                 min_rsi = rsi
                 most_oversold = symbol
+                price = current_price
         
-        return most_oversold, min_rsi if most_oversold else 100
+        return most_oversold, min_rsi if most_oversold else 100, price
 
-    def get_current_price(self, symbol: str) -> Optional[float]:
-        """Precio actual"""
-        df = self.get_data(symbol, days_back=5)
-        if df is None or len(df) == 0:
+    def get_current_price_now(self, symbol: str) -> Optional[float]:
+        """Precio ACTUAL ahora"""
+        try:
+            df = yf.download(symbol, period="1d", progress=False, auto_adjust=True)
+            if df.empty:
+                return None
+            return float(df['Close'].iloc[-1])
+        except:
             return None
-        return float(df['Close'].iloc[-1])
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# POSICIÓN
+# POSICIÓN EN VIVO
 # ════════════════════════════════════════════════════════════════════════════
 
 class Position:
-    """Representa una posición abierta"""
+    """Posición abierta EN VIVO"""
     
-    def __init__(self, symbol: str, entry_price: float, entry_time: datetime,
-                 quantity: float, capital: float, rsi10: float):
+    def __init__(self, symbol: str, entry_price: float, quantity: float, 
+                 capital: float, rsi10: float):
         self.symbol = symbol
         self.entry_price = entry_price
-        self.entry_time = entry_time
+        self.entry_time = datetime.now()
         self.quantity = quantity
         self.capital = capital
         self.rsi10 = rsi10
@@ -241,14 +230,14 @@ class Position:
         self.exit_reason = None
         self.pnl_pct = None
 
-    def check_exit(self, current_price: float, current_time: datetime) -> bool:
-        """Verifica si debe cerrarse"""
+    def check_exit_now(self, current_price: float, current_hour: int) -> bool:
+        """Verifica si debe cerrarse AHORA"""
         pnl_pct = (current_price - self.entry_price) / self.entry_price
 
         # Target de ganancia
         if pnl_pct >= CONFIG["target_profit_pct"]:
             self.exit_price = current_price
-            self.exit_time = current_time
+            self.exit_time = datetime.now()
             self.exit_reason = "Take Profit (+3%)"
             self.pnl_pct = pnl_pct
             return True
@@ -256,46 +245,31 @@ class Position:
         # Stop loss
         if pnl_pct <= -CONFIG["stop_loss_pct"]:
             self.exit_price = current_price
-            self.exit_time = current_time
+            self.exit_time = datetime.now()
             self.exit_reason = "Stop Loss (-3%)"
             self.pnl_pct = pnl_pct
             return True
 
-        # Exit por tiempo (EOD)
-        if current_time.hour >= CONFIG["time_based_exit_hour"]:
-            if self.entry_time.date() < current_time.date():
-                self.exit_price = current_price
-                self.exit_time = current_time
-                self.exit_reason = "End of Day"
-                self.pnl_pct = pnl_pct
-                return True
+        # Exit por cierre de mercado (4 PM EST)
+        if current_hour >= CONFIG["time_based_exit_hour"]:
+            self.exit_price = current_price
+            self.exit_time = datetime.now()
+            self.exit_reason = "End of Day"
+            self.pnl_pct = pnl_pct
+            return True
 
         return False
 
-    def to_dict(self) -> Dict:
-        return {
-            "symbol": self.symbol,
-            "entry_price": self.entry_price,
-            "entry_time": self.entry_time.isoformat(),
-            "quantity": self.quantity,
-            "capital": self.capital,
-            "rsi10": self.rsi10,
-            "exit_price": self.exit_price,
-            "exit_time": self.exit_time.isoformat() if self.exit_time else None,
-            "exit_reason": self.exit_reason,
-            "pnl_pct": self.pnl_pct,
-        }
-
 
 # ════════════════════════════════════════════════════════════════════════════
-# BOT PRINCIPAL
+# BOT LIVE - OPERANDO EN TIEMPO REAL
 # ════════════════════════════════════════════════════════════════════════════
 
-class S500Bot:
-    """Bot S&P 500 RSI10 Mean Reversion"""
+class S500BotLive:
+    """Bot que opera EN VIVO con datos reales"""
     
-    def __init__(self, symbols: List[str] = None):
-        self.symbols = symbols or CONFIG["symbols"]
+    def __init__(self):
+        self.symbols = CONFIG["symbols"]
         self.data_manager = DataManager(self.symbols, CONFIG["rsi_period"])
         self.telegram = TelegramReporter(CONFIG["telegram_token"], CONFIG["telegram_chat_id"])
         
@@ -305,18 +279,21 @@ class S500Bot:
         self.daily_trades = []
         
         log.info("=" * 60)
-        log.info("🤖 BOT S&P 500 v3.0 INICIADO")
+        log.info("🤖 BOT S&P 500 v3.1 LIVE - OPERANDO EN VIVO")
         log.info("=" * 60)
         log.info(f"Símbolos: {', '.join(self.symbols)}")
-        log.info(f"Capital inicial: ${self.capital:,.2f}")
-        log.info(f"RSI período: {CONFIG['rsi_period']}")
-        log.info(f"Telegram: {'✅ HABILITADO' if self.telegram.enabled else '❌ DESHABILITADO'}")
+        log.info(f"Capital: ${self.capital:,.2f}")
+        log.info(f"RSI Threshold: {CONFIG['rsi_period']}")
+        log.info(f"Oversold: < {CONFIG['oversold_threshold']}")
+        log.info(f"Telegram: {'✅' if self.telegram.enabled else '❌'}")
         log.info("=" * 60)
+        
+        self.telegram.send("🚀 *Bot S&P 500 v3.1 INICIADO EN LIVE*\nOperando en tiempo real...")
 
-    def open_trade(self, symbol: str, entry_price: float, rsi10: float) -> bool:
-        """Abre una posición"""
+    def open_trade_now(self, symbol: str, entry_price: float, rsi10: float) -> bool:
+        """Abre trade AHORA"""
         if self.position:
-            log.warning("Ya hay posición abierta")
+            log.info("⚠️  Ya hay posición abierta")
             return False
 
         capital_allocated = self.capital * CONFIG["risk_per_trade_pct"]
@@ -325,18 +302,17 @@ class S500Bot:
         self.position = Position(
             symbol=symbol,
             entry_price=entry_price,
-            entry_time=datetime.now(),
             quantity=quantity,
             capital=capital_allocated,
             rsi10=rsi10
         )
 
         self.telegram.report_trade_open(symbol, entry_price, rsi10, capital_allocated)
-        log.info(f"✅ COMPRA: {symbol} @ ${entry_price:.2f} | RSI={rsi10:.1f}")
+        log.info(f"✅ COMPRA EN VIVO: {symbol} @ ${entry_price:.2f} | RSI={rsi10:.1f}")
         return True
 
-    def close_trade(self):
-        """Cierra la posición"""
+    def close_trade_now(self):
+        """Cierra trade AHORA"""
         if not self.position:
             return
 
@@ -352,63 +328,62 @@ class S500Bot:
         )
 
         log.info(
-            f"✅ VENTA: {self.position.symbol} @ ${self.position.exit_price:.2f} | "
-            f"PnL: {self.position.pnl_pct:+.2f}% ({self.position.exit_reason})"
+            f"✅ VENTA EN VIVO: {self.position.symbol} @ ${self.position.exit_price:.2f} | "
+            f"PnL: {self.position.pnl_pct:+.2f}% | Capital: ${self.capital:,.2f}"
         )
 
         self.trades_history.append(self.position)
         self.daily_trades.append(self.position)
         self.position = None
 
-    def run_backtest(self, start_date: str, end_date: str) -> Dict:
-        """Backtest histórico"""
-        log.info(f"📊 INICIANDO BACKTEST: {start_date} → {end_date}")
+    def check_market_hours(self) -> bool:
+        """Verifica si el mercado está abierto (9:30 AM - 4 PM EST)"""
+        now = datetime.now()
+        # EST timezone (puede variar según horario de verano)
+        hour = now.hour - 3  # Ajustar según tu zona horaria
         
-        all_dates = pd.bdate_range(start=start_date, end=end_date, freq='B')
+        # Mercado abierto: 9:30 AM - 4 PM EST (lunes-viernes)
+        if now.weekday() >= 5:  # Sábado o domingo
+            return False
         
-        for trade_date in all_dates:
-            # Cierra posición si existe
-            if self.position:
-                price = self.data_manager.get_current_price(self.position.symbol)
-                if price:
-                    self.position.check_exit(price, trade_date)
-                    if self.position.exit_price:
-                        self.close_trade()
-            
-            # Abre nueva posición
-            if not self.position and trade_date != all_dates[-1]:
-                symbol, rsi = self.data_manager.find_most_oversold()
-                if symbol:
-                    price = self.data_manager.get_current_price(symbol)
+        return 9 <= hour <= 16
+
+    def run_live(self):
+        """Corre EN VIVO monitoreando en tiempo real"""
+        log.info("🚀 MODO LIVE: Monitoreando mercado en tiempo real...")
+        
+        while True:
+            try:
+                now = datetime.now()
+                
+                # Verificar horario de mercado
+                if not self.check_market_hours():
+                    log.info(f"⏰ Mercado cerrado. Próxima revisión: {now + timedelta(minutes=CONFIG['check_interval_minutes'])}")
+                    time.sleep(300)  # Esperar 5 minutos si está cerrado
+                    continue
+                
+                # REVISAR POSICIÓN ABIERTA
+                if self.position:
+                    price = self.data_manager.get_current_price_now(self.position.symbol)
                     if price:
-                        self.open_trade(symbol, price, rsi)
-        
-        # Resumen
-        total = len(self.trades_history)
-        wins = sum(1 for t in self.trades_history if t.pnl_pct > 0)
-        losses = total - wins
-        total_return = (self.capital - CONFIG["initial_capital"]) / CONFIG["initial_capital"]
-        
-        results = {
-            "total_trades": total,
-            "wins": wins,
-            "losses": losses,
-            "win_rate": wins / total if total > 0 else 0,
-            "total_return_pct": total_return * 100,
-            "final_capital": self.capital,
-        }
-        
-        log.info("=" * 60)
-        log.info("✅ BACKTEST COMPLETADO")
-        log.info("=" * 60)
-        log.info(f"Total trades: {total}")
-        log.info(f"Wins: {wins} | Losses: {losses}")
-        log.info(f"Win rate: {results['win_rate']:.1%}")
-        log.info(f"Total return: {results['total_return_pct']:.2f}%")
-        log.info(f"Final capital: ${self.capital:,.2f}")
-        log.info("=" * 60)
-        
-        return results
+                        if self.position.check_exit_now(price, now.hour):
+                            self.close_trade_now()
+                
+                # BUSCAR NUEVA OPORTUNIDAD
+                if not self.position:
+                    symbol, rsi, price = self.data_manager.find_most_oversold_now()
+                    if symbol and price > 0:
+                        log.info(f"📊 {symbol} oversold (RSI={rsi:.1f}) @ ${price:.2f}")
+                        self.open_trade_now(symbol, price, rsi)
+                
+                # Esperar antes de siguiente revisión
+                log.info(f"⏰ Siguiente revisión en {CONFIG['check_interval_minutes']} min ({now.strftime('%H:%M')})")
+                time.sleep(CONFIG['check_interval_minutes'] * 60)
+                
+            except Exception as e:
+                log.error(f"❌ Error: {e}", exc_info=True)
+                self.telegram.report_status(f"⚠️ Error en bot: {str(e)}")
+                time.sleep(60)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -418,93 +393,39 @@ class S500Bot:
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print("""
-🤖 Bot S&P 500 v3.0
+🤖 Bot S&P 500 v3.1 - LIVE TRADING
 
 USO:
-  python sp500_bot_v3.0_FINAL.py backtest    # Backtest histórico (2024-2025)
-  python sp500_bot_v3.0_FINAL.py live        # Modo live (corre continuamente)
-  python sp500_bot_v3.0_FINAL.py --help      # Esta ayuda
+  python sp500_bot_v3.1_LIVE_REAL.py live    # ⭐ Operar EN VIVO
+  python sp500_bot_v3.1_LIVE_REAL.py --help  # Ayuda
 
-ANTES DE EJECUTAR:
+CARACTERISTICAS:
+  ✅ Analiza precios REALES ahora
+  ✅ Abre/cierra trades EN VIVO
+  ✅ Monitorea cada 30 minutos (9:30 AM - 4 PM EST)
+  ✅ Sin dinero real (pero con lógica real)
+  ✅ Telegram alertas instantáneas
+
+BEFORE:
   1. cp .env.example .env
-  2. Edita .env con tus credenciales Telegram (OPCIONAL)
+  2. Edita .env con TELEGRAM_TOKEN y TELEGRAM_CHAT_ID
   3. pip install -r requirements.txt
 
-TELEGRAM (OPCIONAL):
-  - @BotFather → /newbot → TOKEN
-  - @userinfobot → CHAT_ID
-  - Guardar en .env
-
-OUTPUT:
-  - sp500_bot.log (archivo de logs)
-  - Alertas en Telegram (si está configurado)
+LOGS:
+  sp500_bot.log (archivo de log)
 """)
         return
 
     try:
-        bot = S500Bot()
-        
-        if len(sys.argv) > 1 and sys.argv[1] == "backtest":
-            results = bot.run_backtest(CONFIG["backtest_start"], CONFIG["backtest_end"])
-        else:
-            # MODO LIVE: Corre continuamente
-            log.info("🚀 MODO LIVE: Bot corriendo continuamente...")
-            bot.telegram.send("🚀 *Bot S&P 500 iniciado en LIVE MODE*\nCorriendo continuamente...")
-            
-            last_run_date = None
-            while True:
-                try:
-                    current_date = datetime.now().date()
-                    
-                    # Ejecutar una vez al día
-                    if last_run_date != current_date:
-                        log.info(f"\n{'='*60}")
-                        log.info(f"📅 Ejecución diaria: {current_date}")
-                        log.info(f"{'='*60}\n")
-                        
-                        # Backtest de últimos 60 días
-                        end_date = datetime.now()
-                        start_date = end_date - timedelta(days=60)
-                        
-                        bot.run_backtest(
-                            start_date.strftime("%Y-%m-%d"),
-                            end_date.strftime("%Y-%m-%d")
-                        )
-                        
-                        last_run_date = current_date
-                        
-                        # Resumen diario
-                        if bot.daily_trades:
-                            daily_pnl = sum(t.pnl_pct for t in bot.daily_trades if t.pnl_pct)
-                            cumulative_pnl = (bot.capital - CONFIG["initial_capital"]) / CONFIG["initial_capital"] * 100
-                            wins = sum(1 for t in bot.daily_trades if t.pnl_pct > 0)
-                            losses = len(bot.daily_trades) - wins
-                            
-                            bot.telegram.report_daily_summary(
-                                current_date.strftime("%Y-%m-%d"),
-                                len(bot.daily_trades),
-                                wins,
-                                losses,
-                                daily_pnl,
-                                cumulative_pnl
-                            )
-                            bot.daily_trades = []
-                    
-                    # Esperar 1 hora antes de siguiente check
-                    log.info(f"⏰ Próxima ejecución en 1 hora... ({datetime.now().strftime('%H:%M:%S')})")
-                    time.sleep(3600)
-                    
-                except Exception as e:
-                    log.error(f"❌ Error en loop: {e}", exc_info=True)
-                    bot.telegram.report_error(f"Error en ejecución: {str(e)}")
-                    time.sleep(60)
+        bot = S500BotLive()
+        bot.run_live()
             
     except KeyboardInterrupt:
         log.info("⏸️  Bot detenido por usuario")
     except Exception as e:
         log.error(f"❌ Error fatal: {e}", exc_info=True)
         telegram = TelegramReporter(CONFIG["telegram_token"], CONFIG["telegram_chat_id"])
-        telegram.report_error(str(e))
+        telegram.report_status(f"❌ Bot detenido: {str(e)}")
 
 
 if __name__ == "__main__":
