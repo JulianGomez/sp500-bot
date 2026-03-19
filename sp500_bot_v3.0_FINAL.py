@@ -1,11 +1,10 @@
 """
-🤖 S&P 500 Bot v3.2 - OPERANDO EN VIVO (VERSIÓN FINAL)
+🤖 S&P 500 Bot v3.3 - OVERSOLD THRESHOLD = 30
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Bot S&P 500 RSI10 Mean Reversion - VERSIÓN ESTABLE
-✅ Sin errores de Series
-✅ Análisis en tiempo real
-✅ Telegram integrado
+Versión más sensible: busca RSI < 30 (no 35)
+✅ Más oportunidades de trade
+✅ Más operaciones esperadas
 """
 
 import os
@@ -25,7 +24,7 @@ load_dotenv()
 CONFIG = {
     "symbols": ["VLO", "AMAT", "EOG", "MOS", "COST", "EQIX", "GILD"],
     "rsi_period": 10,
-    "oversold_threshold": 35,
+    "oversold_threshold": 30,  # BAJADO DE 35 A 30 PARA MÁS SENSIBILIDAD
     "target_profit_pct": 0.03,
     "stop_loss_pct": 0.03,
     "time_based_exit_hour": 16,
@@ -126,8 +125,8 @@ class DataManager:
             log.debug(f"Error descargando {symbol}: {e}")
             return None
 
-    def find_most_oversold_now(self, threshold: int = 35) -> Tuple[Optional[str], float, float]:
-        """Encuentra símbolo más oversold - SIN ERRORES DE SERIES"""
+    def find_most_oversold_now(self, threshold: int = 30) -> Tuple[Optional[str], float, float]:
+        """Encuentra símbolo más oversold - THRESHOLD = 30"""
         most_oversold = None
         min_rsi = 100.0
         price = 0.0
@@ -146,6 +145,7 @@ class DataManager:
                     min_rsi = rsi_value
                     most_oversold = symbol
                     price = price_value
+                    log.info(f"📊 {symbol}: RSI={rsi_value:.1f} (< {threshold})")
                     
             except Exception as e:
                 log.debug(f"Error procesando {symbol}: {e}")
@@ -154,12 +154,11 @@ class DataManager:
         return most_oversold, min_rsi if most_oversold else 100.0, price
 
     def get_current_price_now(self, symbol: str) -> Optional[float]:
-        """Obtiene precio actual - SIN ERRORES DE SERIES"""
+        """Obtiene precio actual"""
         try:
             df = yf.download(symbol, period="5d", progress=False, auto_adjust=True)
             if df is None or df.empty or len(df) == 0:
                 return None
-            # Usar .values para evitar Series
             price = float(df['Close'].values[-1])
             return price if price > 0 else None
         except:
@@ -225,14 +224,14 @@ class S500BotLive:
         self.trades_history = []
         
         log.info("=" * 60)
-        log.info("🤖 BOT S&P 500 v3.2 - EN VIVO")
+        log.info("🤖 BOT S&P 500 v3.3 - EN VIVO")
         log.info("=" * 60)
         log.info(f"Símbolos: {', '.join(CONFIG['symbols'])}")
         log.info(f"Capital: ${self.capital:,.2f}")
-        log.info(f"Oversold: < {CONFIG['oversold_threshold']}")
+        log.info(f"Oversold THRESHOLD: < {CONFIG['oversold_threshold']} (MÁS SENSIBLE)")
         log.info("=" * 60)
         
-        self.telegram.send("🚀 *Bot S&P 500 v3.2 INICIADO*")
+        self.telegram.send("🚀 *Bot S&P 500 v3.3 INICIADO*\nThreshold=30 (más sensible)")
 
     def open_trade_now(self, symbol: str, entry_price: float, rsi10: float) -> bool:
         if self.position:
@@ -261,7 +260,7 @@ class S500BotLive:
             self.position.exit_reason
         )
 
-        log.info(f"✅ VENTA: {self.position.symbol} @ ${self.position.exit_price:.2f} | PnL: {self.position.pnl_pct:+.2f}%")
+        log.info(f"✅ VENTA: {self.position.symbol} @ ${self.position.exit_price:.2f} | PnL: {self.position.pnl_pct:+.2f}% | Capital: ${self.capital:,.2f}")
         self.trades_history.append(self.position)
         self.position = None
 
@@ -271,7 +270,7 @@ class S500BotLive:
         return now.weekday() < 5 and 9 <= hour <= 16
 
     def run_live(self):
-        log.info("🚀 MODO LIVE: Monitoreando...")
+        log.info("🚀 MODO LIVE: Monitoreando con threshold=30...")
         
         while True:
             try:
@@ -293,7 +292,7 @@ class S500BotLive:
                 if not self.position:
                     symbol, rsi, price = self.data_manager.find_most_oversold_now()
                     if symbol is not None and price > 0:
-                        log.info(f"📊 {symbol} oversold (RSI={rsi:.1f}) @ ${price:.2f}")
+                        log.info(f"🔥 OPORTUNIDAD: {symbol} (RSI={rsi:.1f}) @ ${price:.2f}")
                         self.open_trade_now(symbol, price, rsi)
                 
                 log.info(f"⏰ Siguiente check en {CONFIG['check_interval_minutes']} min")
