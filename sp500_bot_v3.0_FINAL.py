@@ -36,15 +36,6 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ════════════════════════════════════════════════════════════════════════════
-# CAMUFLAJE PARA YAHOO FINANCE (Evitar Rate Limit)
-# ════════════════════════════════════════════════════════════════════════════
-# Creamos una sesión de requests que imite a un navegador real
-session = requests.Session()
-session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
-})
-
-# ════════════════════════════════════════════════════════════════════════════
 # TELEGRAM
 # ════════════════════════════════════════════════════════════════════════════
 class TelegramReporter:
@@ -65,7 +56,7 @@ class TelegramReporter:
             return False
 
 # ════════════════════════════════════════════════════════════════════════════
-# DATA MANAGER (Con camuflaje y reintentos)
+# DATA MANAGER (Súper Simplificado para evitar bloqueos)
 # ════════════════════════════════════════════════════════════════════════════
 class DataManager:
     def __init__(self, symbols):
@@ -73,8 +64,9 @@ class DataManager:
 
     def get_rsi(self, symbol):
         try:
-            # Usamos la sesión con User-Agent para evitar el RateLimitError
-            df = yf.download(symbol, period="1mo", interval="1d", progress=False, auto_adjust=True, session=session)
+            # YA NO usamos 'session'. Dejamos que yfinance maneje la conexión internamente.
+            # Al tener curl_cffi instalado en requirements, yfinance lo usará automáticamente.
+            df = yf.download(symbol, period="1mo", interval="1d", progress=False, auto_adjust=True)
             
             if df.empty or len(df) < CONFIG["rsi_period"]:
                 return None, None
@@ -102,8 +94,8 @@ class DataManager:
         price = 0.0
 
         for s in self.symbols:
-            # AGREGAMOS UN RETRASO ALEATORIO entre cada acción para no alertar a Yahoo
-            time.sleep(random.uniform(2, 5)) 
+            # Retraso aleatorio para parecer más humano
+            time.sleep(random.uniform(3, 7)) 
             
             rsi, p = self.get_rsi(s)
             if rsi is not None and rsi < CONFIG["oversold_threshold"]:
@@ -129,7 +121,6 @@ class S500Bot:
         tz_ny = pytz.timezone('America/New_York')
         now_ny = datetime.now(tz_ny)
         
-        # LOG DETALLADO para debuggear el horario
         log.info(f"🕒 Hora actual en NY: {now_ny.strftime('%Y-%m-%d %H:%M:%S')} | Día: {now_ny.weekday()}")
 
         if now_ny.weekday() >= 5: return False
@@ -138,8 +129,8 @@ class S500Bot:
         return True
 
     def run(self):
-        log.info("🚀 BOT S&P 500 v3.4 (Anti-Bloqueo) INICIADO")
-        self.tg.send("🤖 *Bot S&P 500 v3.4 Activo*\nProtección Anti-Bloqueo activada.")
+        log.info("🚀 BOT S&P 500 v3.5 (Ultra-Light) INICIADO")
+        self.tg.send("🤖 *Bot S&P 500 v3.5 Activo*\nUsando curl_cffi para evitar bloqueos de Yahoo.")
 
         while True:
             try:
@@ -150,8 +141,7 @@ class S500Bot:
 
                 if self.position:
                     symbol = self.position['symbol']
-                    # Espera pequeña antes de consultar precio
-                    time.sleep(2)
+                    time.sleep(5)
                     _, current_price = self.dm.get_rsi(symbol)
                     
                     if current_price:
