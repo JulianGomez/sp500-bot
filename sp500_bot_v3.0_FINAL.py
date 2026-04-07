@@ -18,7 +18,7 @@ load_dotenv()
 CONFIG = {
     "symbols": ["VLO", "AMAT", "EOG", "MOS", "COST", "EQIX", "GILD"],
     "rsi_period": 10,
-    "oversold_threshold": 30, 
+    "oversold_threshold": 35,  # 🟢 SUBIDO DE 30 A 35 PARA DAR MÁS OPORTUNIDADES
     "target_profit_pct": 0.03,
     "stop_loss_pct": 0.03,
     "initial_capital": 10000,
@@ -56,7 +56,7 @@ class TelegramReporter:
             return False
 
 # ════════════════════════════════════════════════════════════════════════════
-# DATA MANAGER (Súper Simplificado para evitar bloqueos)
+# DATA MANAGER (Ahora con Logs Verbosos)
 # ════════════════════════════════════════════════════════════════════════════
 class DataManager:
     def __init__(self, symbols):
@@ -64,26 +64,18 @@ class DataManager:
 
     def get_rsi(self, symbol):
         try:
-            # YA NO usamos 'session'. Dejamos que yfinance maneje la conexión internamente.
-            # Al tener curl_cffi instalado en requirements, yfinance lo usará automáticamente.
             df = yf.download(symbol, period="1mo", interval="1d", progress=False, auto_adjust=True)
-            
             if df.empty or len(df) < CONFIG["rsi_period"]:
                 return None, None
             
             close_prices = df['Close'].squeeze()
-            
             delta = close_prices.diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=CONFIG["rsi_period"]).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=CONFIG["rsi_period"]).mean()
-            
             rs = gain / loss
             rsi = 100 - (100 / (1 + rs))
             
-            current_rsi = float(rsi.iloc[-1])
-            current_price = float(close_prices.iloc[-1])
-            
-            return current_rsi, current_price
+            return float(rsi.iloc[-1]), float(close_prices.iloc[-1])
         except Exception as e:
             log.error(f"❌ Error obteniendo datos de {symbol}: {e}")
             return None, None
@@ -93,19 +85,30 @@ class DataManager:
         min_rsi = 100.0
         price = 0.0
 
+        log.info("🔍 INICIANDO ESCANEO DE MERCADO...")
+        
         for s in self.symbols:
-            # Retraso aleatorio para parecer más humano
-            time.sleep(random.uniform(3, 7)) 
-            
+            time.sleep(random.uniform(2, 4)) 
             rsi, p = self.get_rsi(s)
-            if rsi is not None and rsi < CONFIG["oversold_threshold"]:
-                log.info(f"📊 {s} detectado como sobrevendido: RSI={rsi:.2f}")
+            
+            if rsi is not None:
+                # LOG DETALLADO: Aquí es donde ves que el bot está trabajando
+                status = "🎯 SOBREVENDIDO" if rsi < CONFIG["oversold_threshold"] else "⏩ Saltando"
+                log.info(f"   - {s}: RSI={rsi:.2f} | Precio=${p:.2f} -> {status}")
+                
                 if rsi < min_rsi:
                     min_rsi = rsi
                     best_symbol = s
                     price = p
+            else:
+                log.info(f"   - {s}: ⚠️ Sin datos disponibles")
         
-        return best_symbol, min_rsi, price
+        if best_symbol:
+            log.info(f"✅ Escaneo finalizado. El RSI más bajo fue {best_symbol} con {min_rsi:.2f}")
+            if min_rsi >= CONFIG["oversold_threshold"]:
+                log.info(f"😴 Ninguna acción bajó del umbral de {CONFIG['oversold_threshold']}. Sin trades.")
+        
+        return best_symbol if min_rsi < CONFIG["oversold_threshold"] else None, min_rsi, price
 
 # ════════════════════════════════════════════════════════════════════════════
 # LÓGICA DEL BOT
@@ -120,7 +123,6 @@ class S500Bot:
     def is_market_open(self):
         tz_ny = pytz.timezone('America/New_York')
         now_ny = datetime.now(tz_ny)
-        
         log.info(f"🕒 Hora actual en NY: {now_ny.strftime('%Y-%m-%d %H:%M:%S')} | Día: {now_ny.weekday()}")
 
         if now_ny.weekday() >= 5: return False
@@ -129,8 +131,8 @@ class S500Bot:
         return True
 
     def run(self):
-        log.info("🚀 BOT S&P 500 v3.5 (Ultra-Light) INICIADO")
-        self.tg.send("🤖 *Bot S&P 500 v3.5 Activo*\nUsando curl_cffi para evitar bloqueos de Yahoo.")
+        log.info("🚀 BOT S&P 500 v3.6 (Modo Verboso) INICIADO")
+        self.tg.send("🤖 *Bot S&P 500 v3.6 Activo*\nUmbral ajustado a 35. Logs detallados activados.")
 
         while True:
             try:
@@ -141,22 +143,25 @@ class S500Bot:
 
                 if self.position:
                     symbol = self.position['symbol']
+                    log.info(f"📈 Monitoreando posición abierta en {symbol}...")
                     time.sleep(5)
                     _, current_price = self.dm.get_rsi(symbol)
                     
                     if current_price:
                         pnl = (current_price - self.position['entry_price']) / self.position['entry_price']
+                        log.info(f"   - {symbol} PnL actual: {pnl:.2%}")
                         if pnl >= CONFIG["target_profit_pct"] or pnl <= -CONFIG["stop_loss_pct"]:
                             reason = "Take Profit" if pnl > 0 else "Stop Loss"
                             self.close_position(current_price, pnl, reason)
                         else:
-                            log.info(f"⏳ Manteniendo {symbol} | PnL: {pnl:.2%}")
+                            log.info("   - Manteniendo posición...")
                 
                 else:
                     symbol, rsi, price = self.dm.find_best_opportunity()
                     if symbol:
                         self.open_position(symbol, price, rsi)
 
+                log.info(f"💤 Esperando {CONFIG['check_interval_minutes']} min para el próximo escaneo...")
                 time.sleep(CONFIG["check_interval_minutes"] * 60)
 
             except Exception as e:
@@ -169,7 +174,7 @@ class S500Bot:
         self.position = {'symbol': symbol, 'entry_price': price, 'qty': qty}
         msg = f"🚀 *COMPRA EJECUTADA*\nSímbolo: {symbol}\nPrecio: ${price:.2f}\nRSI: {rsi:.2f}\nCapital riesgo: ${amount:.2f}"
         self.tg.send(msg)
-        log.info(f"✅ Compra {symbol} @ {price:.2f}")
+        log.info(f"💰 COMPRA EJECUTADA: {symbol} @ {price:.2f} (RSI={rsi:.2f})")
 
     def close_position(self, price, pnl, reason):
         symbol = self.position['symbol']
@@ -178,7 +183,7 @@ class S500Bot:
         emoji = "✅" if pnl > 0 else "❌"
         msg = f"{emoji} *VENTA EJECUTADA*\nSímbolo: {symbol}\nPrecio: ${price:.2f}\nPnL: {pnl:.2%}\nMotivo: {reason}\nCapital Total: ${self.capital:.2f}"
         self.tg.send(msg)
-        log.info(f"✅ Venta {symbol} | PnL: {pnl:.2%}")
+        log.info(f"📉 VENTA EJECUTADA: {symbol} | PnL: {pnl:.2%} | Motivo: {reason}")
         self.position = None
 
 if __name__ == "__main__":
