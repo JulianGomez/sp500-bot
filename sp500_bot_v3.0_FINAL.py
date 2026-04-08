@@ -16,9 +16,9 @@ load_dotenv()
 # CONFIGURACIÓN
 # ════════════════════════════════════════════════════════════════════════════
 CONFIG = {
-    "symbols": ["VLO", "AMAT", "EOG", "MOS", "COST", "EQIX", "GILD"],
+    "symbols": ["VLO", "AMAT", "EOG", "MOS", "COST", "EQIX", "GILD", "AMD", "NVDA", "TSLA", "PYPL", "INTC", "BA", "NFLX", "SBUX"],
     "rsi_period": 10,
-    "oversold_threshold": 35,  # 🟢 SUBIDO DE 30 A 35 PARA DAR MÁS OPORTUNIDADES
+    "oversold_threshold": 40,  # 🟢 SUBIDO DE 35 A 40 PARA DAR MÁS OPORTUNIDADES
     "target_profit_pct": 0.03,
     "stop_loss_pct": 0.03,
     "initial_capital": 10000,
@@ -131,8 +131,8 @@ class S500Bot:
         return True
 
     def run(self):
-        log.info("🚀 BOT S&P 500 v3.6 (Modo Verboso) INICIADO")
-        self.tg.send("🤖 *Bot S&P 500 v3.6 Activo*\nUmbral ajustado a 35. Logs detallados activados.")
+        log.info("🚀 BOT S&P 500 v3.7 (Modo Verboso) INICIADO")
+        self.tg.send("🤖 *Bot S&P 500 v3.7 Activo*\nUmbral ajustado a 35. Logs detallados activados.")
 
         while True:
             try:
